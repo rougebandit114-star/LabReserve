@@ -1,0 +1,168 @@
+import { jsPDF } from "jspdf";
+import * as XLSX from "xlsx";
+import { Booking } from "../types";
+
+/**
+ * Clean helper to convert bookings list into an Excel file download
+ */
+export function exportBookingsToExcel(bookings: Booking[], reportTitle: string = "Lab_Bookings_Report") {
+  try {
+    // Format dataset for spreadsheet display
+    const formattedData = bookings.map((b) => ({
+      "Reservation ID": b.id,
+      "Resource/Space": b.resourceName,
+      "Resource Type": b.resourceType.toUpperCase(),
+      "Teacher Name": b.userName,
+      "Teacher Email": b.userEmail,
+      "Scheduled Date": b.date,
+      "Start Time": b.startTime,
+      "End Time": b.endTime,
+      "Purpose/Department": b.purpose,
+      "Approval Status": b.status.toUpperCase(),
+      "Created Timestamp": new Date(b.createdAt).toLocaleString(),
+    }));
+
+    // Create worksheet and workbook workbook
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Reservations");
+
+    // Generate buffer & download
+    XLSX.writeFile(workbook, `${reportTitle}.xlsx`);
+  } catch (err) {
+    console.error("Critical Excel report compilation error:", err);
+  }
+}
+
+/**
+ * Clean helper to generate dynamic, beautifully formatted PDFs of bookings lists
+ */
+export function exportBookingsToPDF(bookings: Booking[], reportTitle: string = "Lab Bookings Report") {
+  try {
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    // Outer Margin: 15mm
+    let yPos = 18;
+
+    // Report Header
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(24, 28, 36);
+    doc.text("LAB BOOKING SYSTEM REPORT", 15, yPos);
+    
+    yPos += 8;
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(100, 110, 120);
+    doc.text(`Generated: ${new Date().toLocaleString()} | Scope: ${reportTitle}`, 15, yPos);
+    
+    yPos += 4;
+    doc.setDrawColor(200, 205, 215);
+    doc.setLineWidth(0.3);
+    doc.line(15, yPos, 195, yPos);
+
+    yPos += 10;
+
+    // Subheader section
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(30, 40, 50);
+    doc.text(`Active Allocations Summary (${bookings.length} reservations listed)`, 15, yPos);
+
+    yPos += 8;
+
+    // Headings
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setFillColor(240, 242, 245);
+    doc.rect(15, yPos - 5, 180, 7, "F");
+    
+    doc.setTextColor(50, 60, 70);
+    doc.text("ID", 17, yPos);
+    doc.text("Resource Space & Location", 40, yPos);
+    doc.text("Teacher / Department", 100, yPos);
+    doc.text("Schedule Slot", 145, yPos);
+    doc.text("Status", 180, yPos);
+
+    yPos += 6;
+
+    // Body Row loop
+    bookings.forEach((b, idx) => {
+      // Check if page overflows
+      if (yPos > 275) {
+        doc.addPage();
+        yPos = 20;
+        
+        // Redraw table headers on new page
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setFillColor(240, 242, 245);
+        doc.rect(15, yPos - 5, 180, 7, "F");
+        
+        doc.setTextColor(50, 60, 70);
+        doc.text("ID", 17, yPos);
+        doc.text("Resource Space & Location", 40, yPos);
+        doc.text("Teacher / Department", 100, yPos);
+        doc.text("Schedule slot", 145, yPos);
+        doc.text("Status", 180, yPos);
+        yPos += 6;
+      }
+
+      // Draw subtle alternating background
+      if (idx % 2 === 1) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(15, yPos - 4, 180, 8, "F");
+      }
+
+      doc.setFont("Helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(40, 50, 60);
+
+      doc.text(b.id, 17, yPos);
+      
+      // Resource Name max length formatting
+      const resName = b.resourceName.length > 32 
+        ? b.resourceName.substring(0, 30) + "..." 
+        : b.resourceName;
+      doc.text(resName, 40, yPos);
+      
+      const userStr = b.userName.length > 25
+        ? b.userName.substring(0, 23) + "..."
+        : b.userName;
+      doc.text(userStr, 100, yPos);
+      
+      doc.text(`${b.date} ${b.startTime}`, 145, yPos);
+      
+      // Status formatting with color coding
+      const statusText = b.status.toUpperCase();
+      if (b.status === "approved" || b.status === "completed") {
+        doc.setTextColor(16, 124, 65); // Green
+      } else if (b.status === "pending") {
+        doc.setTextColor(218, 145, 0); // Orange/Amber
+      } else {
+        doc.setTextColor(170, 40, 40); // Red
+      }
+      doc.text(statusText, 180, yPos);
+
+      yPos += 8;
+    });
+
+    // Page footer numbering
+    const totalPages = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFont("Helvetica", "italic");
+      doc.setFontSize(8);
+      doc.setTextColor(150, 160, 170);
+      doc.text(`Page ${i} of ${totalPages} - Generated by Lab Booking Automated Services`, 105, 287, { align: "center" });
+    }
+
+    doc.save(`${reportTitle.replace(/\s+/g, "_")}.pdf`);
+  } catch (err) {
+    console.error("Critical PDF report compilation error:", err);
+  }
+}

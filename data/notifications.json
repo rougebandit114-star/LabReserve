@@ -1,0 +1,387 @@
+[
+  {
+    "id": "956d4e46-45d1-43f7-beae-b151d8d0ccc5",
+    "userId": "teacher-01",
+    "title": "Booking Pending Review",
+    "message": "Your reservation request for High-Ventilation Chemical Fume Cabin (CH-02) on 2026-06-16 has been submitted for director clearance.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T11:59:29.906Z"
+  },
+  {
+    "id": "e4cec3e8-0d64-4462-9cf0-e9158c6a1c82",
+    "userId": "teacher-01",
+    "title": "Reservation Request Declined",
+    "message": "Your request for Mechatronics Development Workbench (Station 3) on 2026-06-16 was declined by lab coordinator.",
+    "type": "alert",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:00:57.825Z"
+  },
+  {
+    "id": "5bc4f861-b6a9-431b-a9ef-ffad6303ab51",
+    "userId": "teacher-01",
+    "title": "✉️ New Email Received",
+    "message": "New Mail: \"Notice: Reservation Clearance Not Approved\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:00:57.825Z",
+    "emailId": "4c6fa978-7b33-4609-a5ce-5c391f063ee3"
+  },
+  {
+    "id": "a8dbefdd-6e53-4005-8d14-0d76edbb7a81",
+    "userId": "teacher-01",
+    "title": "Director Approval Granted",
+    "message": "Your high-clearance request for High-Ventilation Chemical Fume Cabin (CH-02) on 2026-06-16 is approved.",
+    "type": "success",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:28.819Z"
+  },
+  {
+    "id": "2d68e462-10ca-486b-8096-75a3486eaab8",
+    "userId": "teacher-01",
+    "title": "Director Approval Granted",
+    "message": "Your high-clearance request for Mechatronics Development Workbench (Station 3) on 2026-06-16 is approved.",
+    "type": "success",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:30.208Z"
+  },
+  {
+    "id": "4c6b8bc6-66d0-4615-9650-f2937237e3be",
+    "userId": "teacher-01",
+    "title": "Director Approval Granted",
+    "message": "Your high-clearance request for Mechatronics Development Workbench (Station 3) on 2026-06-17 is approved.",
+    "type": "success",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:30.208Z"
+  },
+  {
+    "id": "cc72c55b-89e0-4880-9c86-93e1cae89b13",
+    "userId": "teacher-01",
+    "title": "Director Approval Granted",
+    "message": "Your high-clearance request for Mechatronics Development Workbench (Station 3) on 2026-06-18 is approved.",
+    "type": "success",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:30.208Z"
+  },
+  {
+    "id": "2d1ff78b-f07e-4629-80ce-7136174e8cc9",
+    "userId": "teacher-01",
+    "title": "Director Approval Granted",
+    "message": "Your high-clearance request for Mechatronics Development Workbench (Station 3) on 2026-06-19 is approved.",
+    "type": "success",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:30.208Z"
+  },
+  {
+    "id": "a82114be-7322-4585-ac4f-a29e56fc0bd3",
+    "userId": "teacher-01",
+    "title": "Director Approval Granted",
+    "message": "Your high-clearance request for Mechatronics Development Workbench (Station 3) on 2026-06-20 is approved.",
+    "type": "success",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:30.208Z"
+  },
+  {
+    "id": "8b0b9533-5555-4769-acc3-ea151404dc00",
+    "userId": "teacher-01",
+    "title": "Director Approval Granted",
+    "message": "Your high-clearance request for Mechatronics Development Workbench (Station 3) on 2026-06-21 is approved.",
+    "type": "success",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:30.208Z"
+  },
+  {
+    "id": "70c9859d-fdbb-465a-87ee-7058db8c3def",
+    "userId": "teacher-01",
+    "title": "Director Approval Granted",
+    "message": "Your high-clearance request for Mechatronics Development Workbench (Station 3) on 2026-06-22 is approved.",
+    "type": "success",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:30.208Z"
+  },
+  {
+    "id": "3050e19d-a97e-4ae0-8bc6-fb8a4445ea75",
+    "userId": "teacher-01",
+    "title": "System Reminder Sent",
+    "message": "Booking reminder dispatched automatically via secure SMTP for Mechatronics Development Workbench (Station 3) at 08:00.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.662Z"
+  },
+  {
+    "id": "567b7b59-2e6f-42d9-97df-3f2af57c675d",
+    "userId": "teacher-01",
+    "title": "System Reminder Sent",
+    "message": "Booking reminder dispatched automatically via secure SMTP for Mechatronics Development Workbench (Station 3) at 08:00.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.662Z"
+  },
+  {
+    "id": "73b1377c-78a8-4903-b9a1-162d362fd9e3",
+    "userId": "teacher-01",
+    "title": "✉️ New Email Received",
+    "message": "New Mail: \"[TEACHER REMINDER] Upcoming Booking: Mechatronics Development Workbench (Station 3)\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.662Z",
+    "emailId": "38d2e432-cafd-430e-82d3-c8b4b6514909"
+  },
+  {
+    "id": "afba1b1c-adde-4049-98f3-947bd4a96bba",
+    "userId": "teacher-01",
+    "title": "System Reminder Sent",
+    "message": "Booking reminder dispatched automatically via secure SMTP for Mechatronics Development Workbench (Station 3) at 08:00.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.662Z"
+  },
+  {
+    "id": "c2b54624-6eef-4a17-98f8-0cf2c5d6da04",
+    "userId": "teacher-01",
+    "title": "✉️ New Email Received",
+    "message": "New Mail: \"[TEACHER REMINDER] Upcoming Booking: Mechatronics Development Workbench (Station 3)\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.662Z",
+    "emailId": "cffa9f33-e732-43e9-ae4d-f889d9d1a984"
+  },
+  {
+    "id": "c6b4b37a-2d11-4496-b6e6-ddfa3c04ef0f",
+    "userId": "teacher-01",
+    "title": "System Reminder Sent",
+    "message": "Booking reminder dispatched automatically via secure SMTP for Mechatronics Development Workbench (Station 3) at 08:00.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.662Z"
+  },
+  {
+    "id": "f064e888-886b-4ed4-8983-7444e94c0799",
+    "userId": "teacher-01",
+    "title": "✉️ New Email Received",
+    "message": "New Mail: \"[TEACHER REMINDER] Upcoming Booking: Mechatronics Development Workbench (Station 3)\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.662Z",
+    "emailId": "7c13b6d1-f0ed-4ef5-acaa-72225b7adf39"
+  },
+  {
+    "id": "9bd343b4-a12e-4538-b452-aab8126557e9",
+    "userId": "teacher-01",
+    "title": "System Reminder Sent",
+    "message": "Booking reminder dispatched automatically via secure SMTP for Mechatronics Development Workbench (Station 3) at 08:00.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.662Z"
+  },
+  {
+    "id": "bb371eb9-368c-4eab-bb53-b4856424c804",
+    "userId": "teacher-01",
+    "title": "✉️ New Email Received",
+    "message": "New Mail: \"[TEACHER REMINDER] Upcoming Booking: Mechatronics Development Workbench (Station 3)\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.662Z",
+    "emailId": "21963dbe-0a6c-43d1-804f-01ed1a12ed8b"
+  },
+  {
+    "id": "ece80d0a-fdf2-4aa0-a4f2-dc0c5fa47197",
+    "userId": "teacher-01",
+    "title": "System Reminder Sent",
+    "message": "Booking reminder dispatched automatically via secure SMTP for Mechatronics Development Workbench (Station 3) at 08:00.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.662Z"
+  },
+  {
+    "id": "a2fda4c6-a225-468f-a1a2-9dfc9588eac7",
+    "userId": "teacher-01",
+    "title": "✉️ New Email Received",
+    "message": "New Mail: \"[TEACHER REMINDER] Upcoming Booking: Mechatronics Development Workbench (Station 3)\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.662Z",
+    "emailId": "42faa4e0-c022-4647-be0d-d7fb11b9ee29"
+  },
+  {
+    "id": "fce0e568-c362-46bb-a58a-18e5cd980f78",
+    "userId": "teacher-01",
+    "title": "System Reminder Sent",
+    "message": "Booking reminder dispatched automatically via secure SMTP for Mechatronics Development Workbench (Station 3) at 08:00.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.663Z"
+  },
+  {
+    "id": "ad797d0d-78dc-4c07-aa70-b276c36968c4",
+    "userId": "teacher-01",
+    "title": "System Reminder Sent",
+    "message": "Booking reminder dispatched automatically via secure SMTP for High-Ventilation Chemical Fume Cabin (CH-02) at 18:00.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:01:31.663Z"
+  },
+  {
+    "id": "218b39a6-6698-4534-9688-a74b98c45c2f",
+    "userId": "teacher-01",
+    "title": "Reservation Placed Pending",
+    "message": "Your reservation request for High-Ventilation Chemical Fume Cabin (CH-02) on 2026-06-16 has been returned to pending review.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:13:11.045Z"
+  },
+  {
+    "id": "a3c3d7c6-85c8-4c1c-9b7d-0dacd5ebb69b",
+    "userId": "teacher-01",
+    "title": "✉️ New Email Received",
+    "message": "New Mail: \"Notice: Lab Booking Set to Pending Review\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:13:11.046Z",
+    "emailId": "6570bd76-e454-405b-90fd-1855cbbf8de1"
+  },
+  {
+    "id": "dd396fde-af69-4178-9b96-977eeb494186",
+    "userId": "teacher-01",
+    "title": "Director Approval Granted",
+    "message": "Your high-clearance request for High-Ventilation Chemical Fume Cabin (CH-02) on 2026-06-16 is approved.",
+    "type": "success",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:13:13.129Z"
+  },
+  {
+    "id": "c142c211-0e5a-4633-b2d7-83b973ed55d5",
+    "userId": "teacher-01",
+    "title": "✉️ New Email Received",
+    "message": "New Mail: \"[APPROVED & REMINDER] Clearance Approved + Schedule Reminder for High-Ventilation Chemical Fume Cabin (CH-02)\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-16T12:13:13.129Z",
+    "emailId": "3b8ee92c-a419-4084-9779-921842e31c78"
+  },
+  {
+    "id": "ce280f14-2b2f-4fe1-97c3-751b02539206",
+    "userId": "teacher-01",
+    "title": "Booking Pending Review",
+    "message": "Your reservation request for Mechatronics Development Workbench (Station 3) on 2026-06-20 has been submitted for director clearance.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-18T18:16:41.774Z"
+  },
+  {
+    "id": "2517cbc9-043e-45dd-86e3-0142ae5ae29b",
+    "userId": "admin-1",
+    "title": "Reservation Approval Required",
+    "message": "Alex Mercer requested reservation for Mechatronics Development Workbench (Station 3) on 2026-06-20 (08:00-09:00).",
+    "type": "alert",
+    "isRead": true,
+    "createdAt": "2026-06-18T18:16:41.774Z"
+  },
+  {
+    "id": "4d4db4e6-37e7-4863-95d8-ab4d72f59cda",
+    "userId": "admin-2",
+    "title": "Reservation Approval Required",
+    "message": "Alex Mercer requested reservation for Mechatronics Development Workbench (Station 3) on 2026-06-20 (08:00-09:00).",
+    "type": "alert",
+    "isRead": false,
+    "createdAt": "2026-06-18T18:16:41.774Z"
+  },
+  {
+    "id": "cc444795-6ceb-4357-ad15-73893d91663b",
+    "userId": "admin-1",
+    "title": "✉️ New Email Received",
+    "message": "New Mail: \"[Reservation Clearance Required] Mechatronics Development Workbench (Station 3) on 2026-06-20\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-18T18:16:41.774Z",
+    "emailId": "706740ed-3c1f-4425-97af-28084a8d0fdd"
+  },
+  {
+    "id": "2565f137-fcab-4997-9ff7-2b50bfeed2ba",
+    "userId": "admin-2",
+    "title": "✉️ New Email Received",
+    "message": "New Mail: \"[Reservation Clearance Required] Mechatronics Development Workbench (Station 3) on 2026-06-20\"",
+    "type": "info",
+    "isRead": false,
+    "createdAt": "2026-06-18T18:16:41.774Z",
+    "emailId": "706740ed-3c1f-4425-97af-28084a8d0fdd"
+  },
+  {
+    "id": "b9326827-0dcf-4fa9-94f8-421ab6ddd3c1",
+    "userId": "teacher-01",
+    "title": "✉️ Email Dispatched",
+    "message": "Mail sent to admin: \"[Reservation Clearance Required] Mechatronics Development Workbench (Station 3) on 2026-06-20\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-18T18:16:41.774Z",
+    "emailId": "706740ed-3c1f-4425-97af-28084a8d0fdd"
+  },
+  {
+    "id": "f875361d-ae3e-41ea-95dd-149bc93459a8",
+    "userId": "teacher-01",
+    "title": "Director Approval Granted",
+    "message": "Your high-clearance request for Mechatronics Development Workbench (Station 3) on 2026-06-20 is approved.",
+    "type": "success",
+    "isRead": true,
+    "createdAt": "2026-06-18T18:17:22.627Z"
+  },
+  {
+    "id": "aab9cd7f-07ed-437f-b2a8-a028fa0fcbf0",
+    "userId": "teacher-01",
+    "title": "✉️ New Email Received",
+    "message": "New Mail: \"[APPROVED & REMINDER] Clearance Approved + Schedule Reminder for Mechatronics Development Workbench (Station 3)\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-18T18:17:22.628Z",
+    "emailId": "2cd8ab84-86ea-47b0-9ce9-67968c5cbcb0"
+  },
+  {
+    "id": "a631a986-78da-4f09-93d7-6d9ce0d6e194",
+    "userId": "admin-1",
+    "title": "✉️ Email Dispatched",
+    "message": "Approved status response sent to Alex Mercer: \"[APPROVED & REMINDER] Clearance Approved + Schedule Reminder for Mechatronics Development Workbench (Station 3)\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-18T18:17:22.628Z",
+    "emailId": "2cd8ab84-86ea-47b0-9ce9-67968c5cbcb0"
+  },
+  {
+    "id": "88cc0c65-764b-4903-8d72-3bf906ea1dfa",
+    "userId": "teacher-01",
+    "title": "Booking Pending Review",
+    "message": "Your reservation request for High-Ventilation Chemical Fume Cabin (CH-02) on 2026-06-19 has been submitted for director clearance.",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-18T18:26:24.679Z"
+  },
+  {
+    "id": "9865a823-a42b-46e6-8572-462ee5471550",
+    "userId": "admin-1",
+    "title": "✉️ Reservation Approval Required / New Email Received",
+    "message": "New Mail: \"[Reservation Clearance Required] High-Ventilation Chemical Fume Cabin (CH-02) on 2026-06-19\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-18T18:26:24.679Z",
+    "emailId": "2e52d62e-2fd0-48c7-8ca4-53464901afa3"
+  },
+  {
+    "id": "a09fbc76-a098-46ee-8142-f5a8d540f1b7",
+    "userId": "admin-2",
+    "title": "✉️ Reservation Approval Required / New Email Received",
+    "message": "New Mail: \"[Reservation Clearance Required] High-Ventilation Chemical Fume Cabin (CH-02) on 2026-06-19\"",
+    "type": "info",
+    "isRead": false,
+    "createdAt": "2026-06-18T18:26:24.679Z",
+    "emailId": "2e52d62e-2fd0-48c7-8ca4-53464901afa3"
+  },
+  {
+    "id": "ba6f0a78-e840-4090-a5c6-3017fb37a7a7",
+    "userId": "teacher-01",
+    "title": "✉️ Director Approval Granted / New Email Received",
+    "message": "New Mail: \"[APPROVED & REMINDER] Clearance Approved + Schedule Reminder for High-Ventilation Chemical Fume Cabin (CH-02)\"",
+    "type": "info",
+    "isRead": true,
+    "createdAt": "2026-06-18T18:27:10.919Z",
+    "emailId": "7648fdd1-5788-47b7-b06d-099dfa65c8ba"
+  }
+]

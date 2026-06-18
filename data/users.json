@@ -1,0 +1,26 @@
+[
+  {
+    "id": "teacher-01",
+    "name": "Alex Mercer",
+    "email": "teacher@lab.edu",
+    "password": "password",
+    "role": "teacher",
+    "department": "Bioengineering"
+  },
+  {
+    "id": "admin-1",
+    "name": "Dr. Sarah Jenkins",
+    "email": "rougebandit114@gmail.com",
+    "password": "password",
+    "role": "admin",
+    "department": "Lab Administration"
+  },
+  {
+    "id": "admin-2",
+    "name": "Core Faculty Liaison",
+    "email": "admin@lab.edu",
+    "password": "password",
+    "role": "admin",
+    "department": "Mechatronics"
+  }
+]

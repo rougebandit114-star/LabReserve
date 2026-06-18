@@ -1,0 +1,6 @@
+{
+  "name": "Lab Booking System",
+  "description": "Efficient student reservation system for booking lab equipment and scheduling workspaces.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

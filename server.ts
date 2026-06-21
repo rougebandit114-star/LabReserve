@@ -29,6 +29,7 @@ const BOOKINGS_FILE = path.join(DATA_DIR, "bookings.json");
 const NOTIFICATIONS_FILE = path.join(DATA_DIR, "notifications.json");
 const EMAILS_FILE = path.join(DATA_DIR, "emails.json");
 const RESOURCES_FILE = path.join(DATA_DIR, "resources.json");
+const LOGIN_LOGS_FILE = path.join(DATA_DIR, "login_logs.json");
 
 // Helper to read JSON file safely
 const readJsonFile = <T>(filePath: string, defaultValue: T): T => {
@@ -159,7 +160,7 @@ const defaultUsersList = [
     name: "Dr. Sarah Jenkins",
     email: "rougebandit114@gmail.com",
     password: "password",
-    role: "admin",
+    role: "owner",
     department: "Lab Administration"
   },
   {
@@ -173,11 +174,44 @@ const defaultUsersList = [
 ];
 
 // Initialize Files if they do not exist
-const users = readJsonFile(USERS_FILE, defaultUsersList);
+const users = readJsonFile<any[]>(USERS_FILE, defaultUsersList);
+
+// Bullet-proof automatic upgrade for Sarah Jenkins (rougebandit114@gmail.com) to owner role
+const sarahUser = users.find(u => u.email.toLowerCase() === "rougebandit114@gmail.com");
+if (sarahUser && sarahUser.role !== "owner") {
+  sarahUser.role = "owner";
+  writeJsonFile(USERS_FILE, users);
+}
+
 const bookings = readJsonFile<Booking[]>(BOOKINGS_FILE, []);
 const notifications = readJsonFile<Notification[]>(NOTIFICATIONS_FILE, []);
 const emails = readJsonFile<EmailLog[]>(EMAILS_FILE, []);
 const resources = readJsonFile<Resource[]>(RESOURCES_FILE, DEFAULT_RESOURCES);
+
+const defaultLoginLogs = [
+  {
+    id: "LOG-001",
+    userId: "admin-2",
+    userName: "Core Faculty Liaison",
+    userEmail: "admin@lab.edu",
+    loginAt: "2026-06-20T10:14:22Z"
+  },
+  {
+    id: "LOG-002",
+    userId: "teacher-01",
+    userName: "Alex Mercer",
+    userEmail: "teacher@lab.edu",
+    loginAt: "2026-06-20T14:35:10Z"
+  },
+  {
+    id: "LOG-003",
+    userId: "admin-1",
+    userName: "Dr. Sarah Jenkins",
+    userEmail: "rougebandit114@gmail.com",
+    loginAt: "2026-06-21T01:12:45Z"
+  }
+];
+const loginLogs = readJsonFile<any[]>(LOGIN_LOGS_FILE, defaultLoginLogs);
 
 // Initialize MongoDB Sync
 startAndSyncMongoDB({
@@ -186,14 +220,16 @@ startAndSyncMongoDB({
     bookings: BOOKINGS_FILE,
     notifications: NOTIFICATIONS_FILE,
     emails: EMAILS_FILE,
-    resources: RESOURCES_FILE
+    resources: RESOURCES_FILE,
+    loginLogs: LOGIN_LOGS_FILE
   },
   defaults: {
     users: defaultUsersList,
     bookings: [],
     notifications: [],
     emails: [],
-    resources: DEFAULT_RESOURCES
+    resources: DEFAULT_RESOURCES,
+    loginLogs: defaultLoginLogs
   }
 });
 
@@ -290,7 +326,32 @@ app.post("/api/auth/login", (req, res) => {
   }
 
   const { password: _, ...safeUser } = foundUser;
+  
+  // Save to audit login tracker ledger
+  try {
+    const list = readJsonFile<any[]>(LOGIN_LOGS_FILE, defaultLoginLogs);
+    list.push({
+      id: "LOG-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      userId: foundUser.id,
+      userName: foundUser.name,
+      userEmail: foundUser.email,
+      loginAt: new Date().toISOString()
+    });
+    writeJsonFile(LOGIN_LOGS_FILE, list);
+  } catch (err) {
+    console.error("Login logging failed:", err);
+  }
+
   res.json({ user: safeUser, token: safeUser.email });
+});
+
+// Get User Login History Logs (Admin/Owner only)
+app.get("/api/admin/login-logs", authenticateToken, (req: any, res) => {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
+    return res.status(403).json({ error: "Access denied. High-clearance supervisor only." });
+  }
+  const logs = readJsonFile<any[]>(LOGIN_LOGS_FILE, defaultLoginLogs);
+  res.json(logs);
 });
 
 // Get Session Me
@@ -423,7 +484,7 @@ app.get("/api/resources", (req, res) => {
 
 // Admin Add resource
 app.post("/api/resources", authenticateToken, (req: any, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
     return res.status(403).json({ error: "Unauthorized access. Requires Admin status." });
   }
 
@@ -460,7 +521,7 @@ app.post("/api/resources", authenticateToken, (req: any, res) => {
 
 // Admin Update resource
 app.put("/api/resources/:id", authenticateToken, (req: any, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
     return res.status(403).json({ error: "Unauthorized access. Requires Admin status." });
   }
 
@@ -497,7 +558,7 @@ app.put("/api/resources/:id", authenticateToken, (req: any, res) => {
 
 // Admin Delete resource
 app.delete("/api/resources/:id", authenticateToken, (req: any, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
     return res.status(403).json({ error: "Unauthorized access. Requires Admin status." });
   }
 
@@ -535,7 +596,7 @@ app.delete("/api/resources/:id", authenticateToken, (req: any, res) => {
 app.get("/api/bookings", authenticateToken, (req: any, res) => {
   const allBookings = readJsonFile<Booking[]>(BOOKINGS_FILE, []);
   
-  if (req.user.role === "admin") {
+  if (req.user.role === "admin" || req.user.role === "owner") {
     return res.json(allBookings);
   } else {
     // Return all bookings so calendar and timeline can block overlaps,
@@ -721,7 +782,7 @@ app.post("/api/bookings/:id/cancel", authenticateToken, (req: any, res) => {
   const booking = allBookings[idx];
   
   // Guard access
-  if (req.user.role !== "admin" && booking.userId !== req.user.id) {
+  if (req.user.role !== "admin" && req.user.role !== "owner" && booking.userId !== req.user.id) {
     return res.status(403).json({ error: "Unauthorised action: Cannot modify other teachers' bookings." });
   }
 
@@ -732,8 +793,9 @@ app.post("/api/bookings/:id/cancel", authenticateToken, (req: any, res) => {
   // Email simulation
   const allEmails = readJsonFile<EmailLog[]>(EMAILS_FILE, []);
   const cancelEmailId = crypto.randomUUID();
-  const fromEmail = req.user.role === "admin" ? "admin@mit.edu" : booking.userEmail;
-  const toEmail = req.user.role === "admin" ? booking.userEmail : "admin@mit.edu";
+  const isAdminOrOwner = req.user.role === "admin" || req.user.role === "owner";
+  const fromEmail = isAdminOrOwner ? "admin@mit.edu" : booking.userEmail;
+  const toEmail = isAdminOrOwner ? booking.userEmail : "admin@mit.edu";
 
   allEmails.push({
     id: cancelEmailId,
@@ -751,9 +813,9 @@ app.post("/api/bookings/:id/cancel", authenticateToken, (req: any, res) => {
   const allNotifications = readJsonFile<Notification[]>(NOTIFICATIONS_FILE, []);
 
   // Send "New Email Received" notification ONLY to the recipient
-  const recipientUserId = req.user.role === "admin" 
+  const recipientUserId = isAdminOrOwner 
     ? booking.userId 
-    : (readJsonFile<any[]>(USERS_FILE, defaultUsersList).find(u => u.role === "admin")?.id || booking.userId);
+    : (readJsonFile<any[]>(USERS_FILE, defaultUsersList).find(u => u.role === "admin" || u.role === "owner")?.id || booking.userId);
 
   allNotifications.push({
     id: crypto.randomUUID(),
@@ -781,8 +843,8 @@ app.post("/api/bookings/group/:groupId/cancel", authenticateToken, (req: any, re
     return res.status(404).json({ error: "No bookings found matching this group." });
   }
 
-  // Guard access: Ensure user either is admin or owns the bookings
-  const isAuthorized = req.user.role === "admin" || groupBookings.every(b => b.userId === req.user.id);
+  // Guard access: Ensure user either is admin, owner or owns the bookings
+  const isAuthorized = req.user.role === "admin" || req.user.role === "owner" || groupBookings.every(b => b.userId === req.user.id);
   if (!isAuthorized) {
     return res.status(403).json({ error: "Unauthorised action: Cannot cancel other teachers' bookings in group." });
   }
@@ -803,8 +865,9 @@ app.post("/api/bookings/group/:groupId/cancel", authenticateToken, (req: any, re
 
     // Email simulation
     const cancelEmailId = crypto.randomUUID();
-    const fromEmail = req.user.role === "admin" ? "admin@mit.edu" : booking.userEmail;
-    const toEmail = req.user.role === "admin" ? booking.userEmail : "admin@mit.edu";
+    const isAdminOrOwner = req.user.role === "admin" || req.user.role === "owner";
+    const fromEmail = isAdminOrOwner ? "admin@mit.edu" : booking.userEmail;
+    const toEmail = isAdminOrOwner ? booking.userEmail : "admin@mit.edu";
 
     allEmails.push({
       id: cancelEmailId,
@@ -819,9 +882,9 @@ app.post("/api/bookings/group/:groupId/cancel", authenticateToken, (req: any, re
     });
 
     // Send "New Email Received" notification ONLY to the recipient
-    const recipientUserId = req.user.role === "admin" 
+    const recipientUserId = (req.user.role === "admin" || req.user.role === "owner") 
       ? booking.userId 
-      : (readJsonFile<any[]>(USERS_FILE, defaultUsersList).find(u => u.role === "admin")?.id || booking.userId);
+      : (readJsonFile<any[]>(USERS_FILE, defaultUsersList).find(u => u.role === "admin" || u.role === "owner")?.id || booking.userId);
 
     allNotifications.push({
       id: crypto.randomUUID(),
@@ -844,7 +907,7 @@ app.post("/api/bookings/group/:groupId/cancel", authenticateToken, (req: any, re
 
 // Admin Approval/Rejection Gate
 app.post("/api/bookings/:id/approve", authenticateToken, (req: any, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
     return res.status(403).json({ error: "Unauthorized access. Requires Admin status." });
   }
 
@@ -940,7 +1003,7 @@ app.post("/api/bookings/:id/approve", authenticateToken, (req: any, res) => {
 
 // Admin Group-wide Approval/Rejection Gate (one-click multi-day action)
 app.post("/api/bookings/group/:groupId/approve", authenticateToken, (req: any, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
     return res.status(403).json({ error: "Unauthorized access. Requires Admin status." });
   }
 
@@ -1090,7 +1153,7 @@ app.post("/api/notifications/:id/read", authenticateToken, (req: any, res) => {
 app.get("/api/emails", authenticateToken, (req: any, res) => {
   const allEmails = readJsonFile<EmailLog[]>(EMAILS_FILE, []);
   
-  if (req.user.role === "admin") {
+  if (req.user.role === "admin" || req.user.role === "owner") {
     const allBookings = readJsonFile<Booking[]>(BOOKINGS_FILE, []);
     const teachersList = readJsonFile<any[]>(USERS_FILE, defaultUsersList);
     const teacherEmails = new Set(teachersList.filter(u => u.role === "teacher").map(u => u.email));
@@ -1307,7 +1370,7 @@ app.get("/api/analytics", authenticateToken, (req: any, res) => {
 // USER ADMINISTRATION GATE
 // ==========================================
 app.get("/api/admin/users", authenticateToken, (req: any, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
     return res.status(403).json({ error: "Unauthorized access. Requires Admin status." });
   }
   const allUsers = readJsonFile<any[]>(USERS_FILE, defaultUsersList);
@@ -1319,7 +1382,7 @@ app.get("/api/admin/users", authenticateToken, (req: any, res) => {
 });
 
 app.post("/api/admin/users", authenticateToken, (req: any, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
     return res.status(403).json({ error: "Unauthorized access. Requires Admin status." });
   }
 
@@ -1328,8 +1391,12 @@ app.post("/api/admin/users", authenticateToken, (req: any, res) => {
     return res.status(400).json({ error: "Required fields are missing." });
   }
 
-  if (role !== "admin" && role !== "teacher") {
-    return res.status(400).json({ error: "Role must be either 'admin' or 'teacher'." });
+  if (role !== "admin" && role !== "teacher" && role !== "owner") {
+    return res.status(400).json({ error: "Role must be either 'admin', 'teacher', or 'owner'." });
+  }
+
+  if (role === "owner" && req.user.role !== "owner") {
+    return res.status(403).json({ error: "Access Denied. Only the platform Owner can appoint another owner." });
   }
 
   const allUsers = readJsonFile<any[]>(USERS_FILE, defaultUsersList);
@@ -1367,7 +1434,7 @@ app.post("/api/admin/users", authenticateToken, (req: any, res) => {
 });
 
 app.post("/api/admin/users/:id/change-password", authenticateToken, (req: any, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
     return res.status(403).json({ error: "Unauthorized access. Requires Admin status." });
   }
   const { id } = req.params;
@@ -1404,7 +1471,7 @@ app.post("/api/admin/users/:id/change-password", authenticateToken, (req: any, r
 });
 
 app.post("/api/admin/users/:id/toggle-freeze", authenticateToken, (req: any, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
     return res.status(403).json({ error: "Unauthorized access. Requires Admin status." });
   }
   const { id } = req.params;
@@ -1443,7 +1510,7 @@ app.post("/api/admin/users/:id/toggle-freeze", authenticateToken, (req: any, res
 });
 
 app.delete("/api/admin/users/:id", authenticateToken, (req: any, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
     return res.status(403).json({ error: "Unauthorized access. Requires Admin status." });
   }
   const { id } = req.params;
@@ -1569,6 +1636,304 @@ const runAutomatedReminders = () => {
 
 // Start background scanning
 setInterval(runAutomatedReminders, 25000);
+
+
+// ==========================================
+// CENTRALIZED OWNER CONTROL PANEL ROUTING
+// ==========================================
+
+const DB_CONN_FILE = path.join(DATA_DIR, "db_connection.json");
+const defaultDbConfig = {
+  uri: "mongodb://cluster0-replica.edu:27017/labreserve",
+  secretKey: "secure-system-vault-production-credentials",
+  status: "Connected",
+  dbType: "Embedded Virtual DB",
+  lastTested: new Date().toISOString()
+};
+
+// 1. Fetch current dynamic database layout and simulated health monitoring matrix
+app.get("/api/owner/db-config", authenticateToken, (req: any, res) => {
+  if (req.user.role !== "owner" && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Access Denied. Owner or Admin credentials required." });
+  }
+  const config = readJsonFile(DB_CONN_FILE, defaultDbConfig);
+  // Mask secret key for security before shipping to UI
+  const maskedSecret = config.secretKey ? "*".repeat(12) + config.secretKey.slice(-6) : "";
+  res.json({ ...config, maskedSecret });
+});
+
+// 2. Commit dynamic hot-plug DB updates matching owner URIs
+app.post("/api/owner/db-config", authenticateToken, (req: any, res) => {
+  if (req.user.role !== "owner" && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Access Denied. Owner or Admin credentials required." });
+  }
+  const { uri, secretKey } = req.body;
+  if (!uri || !secretKey) {
+    return res.status(400).json({ error: "Both Database Connection URI and Secret encryption key are required." });
+  }
+
+  const config = readJsonFile(DB_CONN_FILE, defaultDbConfig);
+  config.uri = uri;
+  config.secretKey = secretKey;
+  config.status = "Connected";
+  config.lastTested = new Date().toISOString();
+
+  if (uri.startsWith("mongodb")) {
+    config.dbType = "Remote MongoDB Atlas Cluster";
+  } else if (uri.startsWith("postgres")) {
+    config.dbType = "Cloud Relational SQL (PostgreSQL)";
+  } else if (uri.startsWith("mysql")) {
+    config.dbType = "Cloud Relational SQL (MySQL)";
+  } else if (uri.includes("firebase")) {
+    config.dbType = "Firebase Realtime Database";
+  } else {
+    config.dbType = "Custom External Enterprise Node";
+  }
+
+  writeJsonFile(DB_CONN_FILE, config);
+
+  // Notify Owner of update
+  const allNotifications = readJsonFile<Notification[]>(NOTIFICATIONS_FILE, []);
+  allNotifications.push({
+    id: crypto.randomUUID(),
+    userId: req.user.id,
+    title: "🌐 Database Connection Swapped",
+    message: `System dynamically hot-plugged into database core: ${config.dbType}. Key established.`,
+    type: "success",
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+  writeJsonFile(NOTIFICATIONS_FILE, allNotifications);
+
+  console.log(`[DATABASE REGISTER ROTATION COMPLETE] URI changed to: ${uri}. Secret key compiled.`);
+
+  res.json({ success: true, config });
+});
+
+const DB_PROFILES_FILE = path.join(DATA_DIR, "db_profiles.json");
+
+// Fetch database registry profiles from server
+app.get("/api/owner/db-profiles", authenticateToken, (req: any, res) => {
+  if (req.user.role !== "owner" && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Access Denied. Owner or Admin credentials required." });
+  }
+
+  const currentConfig = readJsonFile(DB_CONN_FILE, defaultDbConfig);
+  const defaultProfiles = [
+    {
+      id: "prod-firebase",
+      name: "Primary Faculty Firebase RTDB",
+      uri: currentConfig.uri,
+      secretKey: currentConfig.secretKey,
+      dbType: currentConfig.dbType,
+      status: "Connected",
+      lastTested: currentConfig.lastTested || new Date().toISOString()
+    }
+  ];
+
+  const profiles = readJsonFile(DB_PROFILES_FILE, defaultProfiles);
+  res.json(profiles);
+});
+
+// Create brand new database AND put the web application's current data into it
+app.post("/api/owner/create-database", authenticateToken, (req: any, res) => {
+  if (req.user.role !== "owner" && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Access Denied. Owner or Admin credentials required." });
+  }
+
+  const { name, uri, secretKey, dbType } = req.body;
+  if (!name || !uri || !secretKey) {
+    return res.status(400).json({ error: "Name, Connection URI, and Cryptographic Secret key are required." });
+  }
+
+  const currentConfig = readJsonFile(DB_CONN_FILE, defaultDbConfig);
+  const defaultProfiles = [
+    {
+      id: "prod-firebase",
+      name: "Primary Faculty Firebase RTDB",
+      uri: currentConfig.uri,
+      secretKey: currentConfig.secretKey,
+      dbType: currentConfig.dbType,
+      status: "Connected",
+      lastTested: currentConfig.lastTested || new Date().toISOString()
+    }
+  ];
+
+  const profiles = readJsonFile(DB_PROFILES_FILE, defaultProfiles);
+  
+  // 1. Generate unique database connection ID
+  const dbId = "db-" + crypto.randomUUID().slice(0, 8);
+  
+  // 2. Map database type according to URI structure if not supplied
+  let parsedDbType = dbType;
+  if (!parsedDbType) {
+    if (uri.startsWith("mongodb")) {
+      parsedDbType = "Remote MongoDB Atlas Cluster";
+    } else if (uri.startsWith("postgres")) {
+      parsedDbType = "Cloud Relational SQL (PostgreSQL)";
+    } else if (uri.startsWith("mysql")) {
+      parsedDbType = "Cloud Relational SQL (MySQL)";
+    } else if (uri.includes("firebase")) {
+      parsedDbType = "Firebase Realtime Database";
+    } else {
+      parsedDbType = "Custom External Enterprise Node";
+    }
+  }
+
+  const newProfile = {
+    id: dbId,
+    name,
+    uri,
+    secretKey,
+    dbType: parsedDbType,
+    status: "Provisioned & Registered",
+    lastTested: new Date().toISOString()
+  };
+
+  profiles.push(newProfile);
+  writeJsonFile(DB_PROFILES_FILE, profiles);
+
+  // 3. Create database partition/database space to put all application data!
+  // We clone workspaces, bookings, and users to demonstrate high-fidelity persistence
+  const dbPartitionDir = path.join(DATA_DIR, "partitions", dbId);
+  try {
+    fs.mkdirSync(dbPartitionDir, { recursive: true });
+    
+    // Copy current state files
+    const workspaces = readJsonFile(RESOURCES_FILE, DEFAULT_RESOURCES);
+    const bookings = readJsonFile(BOOKINGS_FILE, []);
+    const users = readJsonFile(USERS_FILE, []);
+    
+    fs.writeFileSync(path.join(dbPartitionDir, "workspaces.json"), JSON.stringify(workspaces, null, 2));
+    fs.writeFileSync(path.join(dbPartitionDir, "bookings.json"), JSON.stringify(bookings, null, 2));
+    fs.writeFileSync(path.join(dbPartitionDir, "users.json"), JSON.stringify(users, null, 2));
+    
+    console.log(`[DATABASE PROVISIONING CONFIG] Switched-on database ${dbId} and populated application state.`);
+  } catch (err) {
+    console.error("Database schema generation simulation error:", err);
+  }
+
+  // 4. Send Owner announcement notifications
+  const allNotifications = readJsonFile<Notification[]>(NOTIFICATIONS_FILE, []);
+  allNotifications.push({
+    id: crypto.randomUUID(),
+    userId: req.user.id,
+    title: "💾 New Enterprise Database Registered",
+    message: `A new database registry profile "${name}" (${parsedDbType}) has been provisioned and loaded with clean application datasets!`,
+    type: "success",
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+  writeJsonFile(NOTIFICATIONS_FILE, allNotifications);
+
+  res.json({ success: true, profile: newProfile, profiles });
+});
+
+// Delete a dynamic database profile from server registry
+app.delete("/api/owner/db-profiles/:id", authenticateToken, (req: any, res) => {
+  if (req.user.role !== "owner" && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Access Denied. Owner or Admin credentials required." });
+  }
+
+  const { id } = req.params;
+  const currentConfig = readJsonFile(DB_CONN_FILE, defaultDbConfig);
+  const defaultProfiles = [
+    {
+      id: "prod-firebase",
+      name: "Primary Faculty Firebase RTDB",
+      uri: currentConfig.uri,
+      secretKey: currentConfig.secretKey,
+      dbType: currentConfig.dbType,
+      status: "Connected",
+      lastTested: currentConfig.lastTested || new Date().toISOString()
+    }
+  ];
+
+  let profiles = readJsonFile(DB_PROFILES_FILE, defaultProfiles);
+  
+  const targetProfile = profiles.find((p: any) => p.id === id);
+  if (!targetProfile) {
+    return res.status(404).json({ error: "Database Profile not found in directory." });
+  }
+
+  profiles = profiles.filter((p: any) => p.id !== id);
+  writeJsonFile(DB_PROFILES_FILE, profiles);
+
+  res.json({ success: true, message: "Profile successfully unregistered.", id });
+});
+
+// 3. Update any user's role (teacher, admin, owner) including appointing new owners
+app.post("/api/owner/users/:id/role", authenticateToken, (req: any, res) => {
+  if (req.user.role !== "owner") {
+    return res.status(403).json({ error: "Access Denied. Only the platform Owner has authorization to modify user clearance roles." });
+  }
+
+  const { id } = req.params;
+  const { role } = req.body;
+
+  if (role !== "teacher" && role !== "admin" && role !== "owner") {
+    return res.status(400).json({ error: "Role must be 'teacher', 'admin', or 'owner'." });
+  }
+
+  const allUsers = readJsonFile<any[]>(USERS_FILE, defaultUsersList);
+  const userIdx = allUsers.findIndex(u => u.id === id);
+
+  if (userIdx === -1) {
+    return res.status(404).json({ error: "User profile not found in ledger." });
+  }
+
+  const targetUser = allUsers[userIdx];
+  const oldRole = targetUser.role;
+  targetUser.role = role;
+  
+  writeJsonFile(USERS_FILE, allUsers);
+
+  // Send update notification
+  const allNotifications = readJsonFile<Notification[]>(NOTIFICATIONS_FILE, []);
+  allNotifications.push({
+    id: crypto.randomUUID(),
+    userId: id,
+    title: "🛡️ Access Level Modified",
+    message: `Your account privilege role has been officially updated from "${oldRole}" to "${role}" by the Owner.`,
+    type: "success",
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+  writeJsonFile(NOTIFICATIONS_FILE, allNotifications);
+
+  res.json({ success: true, user: { id: targetUser.id, name: targetUser.name, role: targetUser.role } });
+});
+
+// 4. Clear all reservation data, emails, and login logs but NOT users
+app.post("/api/owner/clear-all-reservations", authenticateToken, (req: any, res) => {
+  if (req.user.role !== "owner" && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Access Denied. Owner or Admin validation failed." });
+  }
+
+  // Clear bookings.json
+  writeJsonFile(BOOKINGS_FILE, []);
+
+  // Clear emails.json
+  writeJsonFile(EMAILS_FILE, []);
+
+  // Clear login_logs.json
+  writeJsonFile(LOGIN_LOGS_FILE, []);
+
+  // Post notifications to confirm clearing
+  const allNotifications = readJsonFile<Notification[]>(NOTIFICATIONS_FILE, []);
+  allNotifications.push({
+    id: crypto.randomUUID(),
+    userId: req.user.id,
+    title: "⚡ Dynamic Core Sanitation Complete",
+    message: "A command to clear all reservation databases, sent email logs, and login security histories has run successfully. Core user directories remain active.",
+    type: "alert",
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+  writeJsonFile(NOTIFICATIONS_FILE, allNotifications);
+
+  res.json({ success: true, message: "All reservations, emails, and login history records have been successfully cleared." });
+});
 
 
 // ==========================================

@@ -228,6 +228,40 @@ export default function ProfileSettings({
     }
   };
 
+  // Generate and suggest a strong password for validation
+  const suggestStrongPassword = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const numbers = "0123456789";
+    const symbols = "!@#$%^&*()_+=";
+    
+    const getRandom = (source: string, count: number) => {
+      let r = "";
+      for (let i = 0; i < count; i++) {
+        r += source[Math.floor(Math.random() * source.length)];
+      }
+      return r;
+    };
+
+    let pass = [
+      ...getRandom(chars.toLowerCase(), 3),
+      ...getRandom(chars.toUpperCase(), 3),
+      ...getRandom(numbers, 3),
+      ...getRandom(symbols, 3)
+    ];
+
+    // Shuffle
+    for (let i = pass.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pass[i], pass[j]] = [pass[j], pass[i]];
+    }
+
+    const generated = pass.join("");
+    setNewPassword(generated);
+    setConfirmPassword(generated);
+    setShowNewPass(true);
+    setShowConfirmPass(true);
+  };
+
   // Submit security credentials (password update)
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -838,9 +872,19 @@ export default function ProfileSettings({
 
                     {/* New PW */}
                     <div className="space-y-1 relative">
-                      <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider block">
-                        Declare New Password Key
-                      </label>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider block">
+                          Declare New Password Key
+                        </label>
+                        <button
+                          type="button"
+                          onClick={suggestStrongPassword}
+                          className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 flex items-center gap-1 cursor-pointer transition-colors"
+                          id="suggest-profile-password-btn"
+                        >
+                          🔑 Suggest Strong Password
+                        </button>
+                      </div>
                       <div className="relative">
                         <input
                           type={showNewPass ? "text" : "password"}

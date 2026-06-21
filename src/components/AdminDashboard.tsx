@@ -203,6 +203,31 @@ export default function AdminDashboard({
   const [newPasswordVal, setNewPasswordVal] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  // Helper to suggest strong password for active user password change
+  const suggestAdminPassword = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const numbers = "0123456789";
+    const symbols = "!@#$%^&*()_+=";
+    const getRandom = (source: string, count: number) => {
+      let r = "";
+      for (let i = 0; i < count; i++) {
+        r += source[Math.floor(Math.random() * source.length)];
+      }
+      return r;
+    };
+    let pass = [
+      ...getRandom(chars.toLowerCase(), 3),
+      ...getRandom(chars.toUpperCase(), 3),
+      ...getRandom(numbers, 3),
+      ...getRandom(symbols, 3)
+    ];
+    for (let i = pass.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pass[i], pass[j]] = [pass[j], pass[i]];
+    }
+    setNewPasswordVal(pass.join(""));
+  };
+
   // Administration user addition form states
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [createUserName, setCreateUserName] = useState("");
@@ -211,6 +236,31 @@ export default function AdminDashboard({
   const [createUserDept, setCreateUserDept] = useState("");
   const [createUserRole, setCreateUserRole] = useState<"teacher" | "admin">("teacher");
   const [createUserLoading, setCreateUserLoading] = useState(false);
+
+  // Helper to suggest strong pass during new user declaration
+  const suggestCreateUserPassword = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const numbers = "0123456789";
+    const symbols = "!@#$%^&*()_+=";
+    const getRandom = (source: string, count: number) => {
+      let r = "";
+      for (let i = 0; i < count; i++) {
+        r += source[Math.floor(Math.random() * source.length)];
+      }
+      return r;
+    };
+    let pass = [
+      ...getRandom(chars.toLowerCase(), 3),
+      ...getRandom(chars.toUpperCase(), 3),
+      ...getRandom(numbers, 3),
+      ...getRandom(symbols, 3)
+    ];
+    for (let i = pass.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pass[i], pass[j]] = [pass[j], pass[i]];
+    }
+    setCreateUserPassword(pass.join(""));
+  };
 
   const pendingBookings = useMemo(() => {
     return bookings.filter(b => b.status === "pending");
@@ -704,13 +754,23 @@ export default function AdminDashboard({
                     />
                   </div>
 
-                  {/* Password field */}
+                   {/* Password field */}
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">
-                      Initial Password
-                    </label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                        Initial Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={suggestCreateUserPassword}
+                        className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 cursor-pointer"
+                        id="suggest-initial-password-btn"
+                      >
+                        🔑 Suggest Strong
+                      </button>
+                    </div>
                     <input
-                      type="password"
+                      type="text"
                       required
                       placeholder="At least 6 characters"
                       value={createUserPassword}
@@ -873,6 +933,15 @@ export default function AdminDashboard({
                                     onChange={(e) => setNewPasswordVal(e.target.value)}
                                     className="px-2 py-1 bg-white border border-gray-200 rounded text-xs w-32 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                   />
+                                  <button
+                                    type="button"
+                                    onClick={suggestAdminPassword}
+                                    className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded cursor-pointer"
+                                    title="Suggest Strong Password"
+                                    id="suggest-user-password-btn"
+                                  >
+                                    <KeyRound className="w-3.5 h-3.5" />
+                                  </button>
                                   <button
                                     onClick={() => handleSavePassword(u.id)}
                                     className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"

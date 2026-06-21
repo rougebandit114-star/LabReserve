@@ -9,6 +9,7 @@ export interface MongoSyncConfig {
     notifications: string;
     emails: string;
     resources: string;
+    loginLogs: string;
   };
   defaults: {
     users: any[];
@@ -16,6 +17,7 @@ export interface MongoSyncConfig {
     notifications: any[];
     emails: any[];
     resources: any[];
+    loginLogs: any[];
   };
 }
 
@@ -44,7 +46,8 @@ export async function startAndSyncMongoDB(config: MongoSyncConfig) {
       { name: "bookings", file: config.files.bookings, defaultVal: config.defaults.bookings },
       { name: "notifications", file: config.files.notifications, defaultVal: config.defaults.notifications },
       { name: "emails", file: config.files.emails, defaultVal: config.defaults.emails },
-      { name: "resources", file: config.files.resources, defaultVal: config.defaults.resources }
+      { name: "resources", file: config.files.resources, defaultVal: config.defaults.resources },
+      { name: "loginLogs", file: config.files.loginLogs, defaultVal: config.defaults.loginLogs }
     ];
 
     for (const col of collections) {
@@ -97,6 +100,7 @@ export function syncWriteToMongoDB(filePath: string, data: any) {
   else if (filePath === config.files.notifications) collectionName = "notifications";
   else if (filePath === config.files.emails) collectionName = "emails";
   else if (filePath === config.files.resources) collectionName = "resources";
+  else if (filePath === config.files.loginLogs) collectionName = "loginLogs";
 
   if (!collectionName) return;
 

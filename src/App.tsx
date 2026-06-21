@@ -7,6 +7,7 @@ import AdminDashboard from "./components/AdminDashboard";
 import CalendarTimeline from "./components/CalendarTimeline";
 import SimulatedEmails from "./components/SimulatedEmails";
 import ProfileSettings from "./components/ProfileSettings";
+import OwnerDashboard from "./components/OwnerDashboard";
 import { 
   LogOut, 
   Layers, 
@@ -18,7 +19,8 @@ import {
   Bell,
   ListTodo,
   Users,
-  Settings
+  Settings,
+  Database
 } from "lucide-react";
 
 export default function App() {
@@ -154,7 +156,7 @@ export default function App() {
     const date = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${date}`;
   });
-  const [activePanel, setActivePanel] = useState<"reservation" | "timeline" | "queue" | "emails" | "analytics" | "users" | "resources">("reservation");
+  const [activePanel, setActivePanel] = useState<"reservation" | "timeline" | "queue" | "emails" | "analytics" | "users" | "resources" | "data">("reservation");
   const [loadingInitial, setLoadingInitial] = useState(true);
 
   // Backup user profiles to browser cache
@@ -236,9 +238,9 @@ export default function App() {
           console.error("Failed to backup to localStorage:", e);
         }
 
-        // Fetch analytical ratios if Admin
+        // Fetch analytical ratios if Admin or Owner
         const decodedUser = JSON.parse(localStorage.getItem("lab_user_profile") || "null");
-        if (decodedUser && decodedUser.role === "admin") {
+        if (decodedUser && (decodedUser.role === "admin" || decodedUser.role === "owner")) {
           const resAnalytics = await fetch("/api/analytics", { headers });
           if (resAnalytics.ok) {
             const dataAnalytics = await resAnalytics.json();
@@ -393,7 +395,8 @@ export default function App() {
     }
   };
 
-  const isAdmin = user ? user.role === "admin" : false;
+  const isAdmin = user ? (user.role === "admin" || user.role === "owner") : false;
+  const isOwner = user ? user.role === "owner" : false;
 
   const handleUserUpdate = (updatedUser: User) => {
     setUser(updatedUser);
@@ -602,6 +605,21 @@ export default function App() {
               <span>Resource Inventory & Timetables</span>
             </button>
           )}
+
+          {/* Data config (Owner and Admin) */}
+          {isAdmin && (
+            <button
+              type="button"
+              id="owner-data-menu-btn"
+              onClick={() => setActivePanel("data")}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all text-left ${
+                activePanel === "data" ? "bg-slate-800 text-amber-300 border border-amber-500/20" : "text-amber-400 hover:bg-slate-800/50 hover:text-amber-300"
+              }`}
+            >
+              <Database className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>Data & System Monitor</span>
+            </button>
+          )}
           
           {/* Timeline Grid Tab */}
           <button
@@ -675,6 +693,7 @@ export default function App() {
               {activePanel === "emails" && "Mail System Relay outbox"}
               {activePanel === "analytics" && "Compliance Metrics Board"}
               {activePanel === "profile" && "Account Profile & Settings Registry"}
+              {activePanel === "data" && "Enterprise Data & Monitoring"}
             </h2>
             <span className="px-2.5 py-0.8 bg-green-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400 text-[10px] font-bold rounded-full flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
@@ -964,12 +983,34 @@ export default function App() {
               />
             )}
 
-            {/* Fallback panel if Teacher selects analytics or administration panel by mistake */}
+             {activePanel === "data" && isAdmin && (
+              <OwnerDashboard
+                currentUser={user}
+                token={token}
+                onRefreshAll={fetchAllData}
+              />
+            )}
+
+            {/* Fallback panel if Teacher/Admin selects analytics, administration, or data panels by mistake */}
             {((activePanel === "analytics" || activePanel === "users" || activePanel === "resources") && !isAdmin) && (
               <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 mt-12 max-w-md mx-auto shadow-sm">
                 <Layers className="w-12 h-12 text-blue-500 mx-auto" />
                 <p className="text-sm font-bold text-slate-800 mt-4">Unauthorised access</p>
                 <p className="text-xs text-slate-500 mt-1">Teachers are not authorized to view access control lists or structural inventory assets.</p>
+                <button 
+                  onClick={() => setActivePanel("reservation")}
+                  className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg cursor-pointer transition-all"
+                >
+                  Go to Slot Bookings
+                </button>
+              </div>
+            )}
+
+            {(activePanel === "data" && !isAdmin) && (
+              <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 mt-12 max-w-md mx-auto shadow-sm">
+                <Database className="w-12 h-12 text-amber-500 mx-auto animate-pulse" />
+                <p className="text-sm font-bold text-slate-800 mt-4">Unauthorised access</p>
+                <p className="text-xs text-slate-500 mt-1">Only system Admins and Owners have authorization to dynamic database URI structures.</p>
                 <button 
                   onClick={() => setActivePanel("reservation")}
                   className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg cursor-pointer transition-all"

@@ -185,4 +185,20 @@
   color: #f0fdfa !important;
 }
 
+/* ==========================================
+   FOCUS CONTROL TARGET HIGHLIGHTING STYLES
+   ========================================== */
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div#owner-dashboard-container:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div#owner-system-telemetry-panel:nth-of-type(2) {
+  border-width: 2.5px !important;
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.1), 0 8px 10px -6px rgba(59, 130, 246, 0.1) !important;
+  transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div#owner-dashboard-container:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div#owner-storage-breakdown-panel:nth-of-type(3) {
+  border-width: 2.5px !important;
+  box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.1), 0 8px 10px -6px rgba(79, 70, 229, 0.1) !important;
+  transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+
 

@@ -28,7 +28,9 @@ import {
   ShieldAlert,
   Mail,
   History,
-  Download
+  Download,
+  LogIn,
+  LogOut
 } from "lucide-react";
 
 interface OwnerDashboardProps {
@@ -62,6 +64,7 @@ export default function OwnerDashboard({ currentUser, token, onRefreshAll }: Own
 
   // Clear system states
   const [confirmClearChecked, setConfirmClearChecked] = useState(false);
+  const [purgePassword, setPurgePassword] = useState("");
   const [isClearing, setIsClearing] = useState(false);
   const [clearFeedback, setClearFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
@@ -94,6 +97,7 @@ export default function OwnerDashboard({ currentUser, token, onRefreshAll }: Own
     userName: string;
     userEmail: string;
     loginAt: string;
+    action?: "login" | "logout";
   }
   const [loginLogsHistory, setLoginLogsHistory] = useState<LoginLog[]>([]);
   const [loadingLogins, setLoadingLogins] = useState(false);
@@ -510,20 +514,37 @@ export default function OwnerDashboard({ currentUser, token, onRefreshAll }: Own
   // Handle clean all reservation schedules
   const handlePurgeAllReservations = async () => {
     if (!token || !confirmClearChecked) return;
+    if (!purgePassword) {
+      setClearFeedback({ type: "error", msg: "Please enter your current account password to authorize sanitation." });
+      return;
+    }
     setClearFeedback(null);
     setIsClearing(true);
 
     try {
       const res = await fetch("/api/owner/clear-all-reservations", {
         method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: { 
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ confirmPassword: purgePassword })
       });
 
       const data = await res.json();
       if (res.ok) {
         setClearFeedback({ type: "success", msg: "Sanitation Purge Complete! All reservations, dispatched emails, and login logs have been permanently deleted. User accounts are preserved." });
         setConfirmClearChecked(false);
+        setPurgePassword("");
         
+        // Zero out local partition storage sectors for reservations, logs, and session snapshots to reflect purged filesystems
+        setStorageItems(prev => prev.map(item => {
+          if (item.id === "active_reservations" || item.id === "logs" || item.id === "snapshots") {
+            return { ...item, sizeMb: 0 };
+          }
+          return item;
+        }));
+
         // Refresh main parent dataset to instantly clear timeline views
         await onRefreshAll(token);
         
@@ -553,7 +574,7 @@ export default function OwnerDashboard({ currentUser, token, onRefreshAll }: Own
     if (mode === "active") {
       if (historyTab === "logins") {
         fileName = "university_portal_security_logins.csv";
-        const headers = ["Log ID", "User Name", "User Email", "Timestamp (Local)", "Clearance Status"];
+        const headers = ["Log ID", "User Name", "User Email", "Timestamp (Local)", "Action Type", "Clearance Status"];
         const rows = [...loginLogsHistory].sort((a,b) => b.loginAt.localeCompare(a.loginAt)).map(log => {
           const role = (log.userEmail.includes("owner") || log.userEmail === "rougebandit114@gmail.com") 
             ? "Owner Clearance" 
@@ -565,6 +586,7 @@ export default function OwnerDashboard({ currentUser, token, onRefreshAll }: Own
             log.userName,
             log.userEmail,
             new Date(log.loginAt).toLocaleString(),
+            log.action === "logout" ? "LOGOUT" : "LOGIN",
             role
           ];
         });
@@ -616,7 +638,7 @@ export default function OwnerDashboard({ currentUser, token, onRefreshAll }: Own
 
       // 1. Logins
       sections.push("=== SECTION 1: SYSTEM VISITATION LOGINS ===");
-      const loginsHeaders = ["Log ID", "User Name", "User Email", "Timestamp (Local)", "Clearance Status"];
+      const loginsHeaders = ["Log ID", "User Name", "User Email", "Timestamp (Local)", "Action Type", "Clearance Status"];
       const loginsRows = [...loginLogsHistory].sort((a,b) => b.loginAt.localeCompare(a.loginAt)).map(log => {
         const role = (log.userEmail.includes("owner") || log.userEmail === "rougebandit114@gmail.com") 
           ? "Owner Clearance" 
@@ -628,6 +650,7 @@ export default function OwnerDashboard({ currentUser, token, onRefreshAll }: Own
           log.userName,
           log.userEmail,
           new Date(log.loginAt).toLocaleString(),
+          log.action === "logout" ? "LOGOUT" : "LOGIN",
           role
         ];
       });
@@ -1647,16 +1670,39 @@ export default function OwnerDashboard({ currentUser, token, onRefreshAll }: Own
                   type="checkbox"
                   id="confirm-database-purge-checkbox"
                   checked={confirmClearChecked}
-                  onChange={(e) => setConfirmClearChecked(e.target.checked)}
+                  onChange={(e) => {
+                    setConfirmClearChecked(e.target.checked);
+                    if (!e.target.checked) setPurgePassword("");
+                  }}
                   className="rounded text-rose-600 focus:ring-rose-500 mt-0.5 cursor-pointer size-4"
                 />
                 <span className="select-none">I confirm that I want to clear all reservations, mails, and security logs. This action cannot be reversed.</span>
               </label>
 
+              {confirmClearChecked && (
+                <div className="space-y-1.5 animate-fade-in" id="owner-purge-credentials-box">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-bold text-rose-800 dark:text-rose-400">
+                      Authentication Clearance Required
+                    </label>
+                    <span className="text-[10px] text-rose-500 font-mono font-bold">Secure Verification</span>
+                  </div>
+                  <input
+                    type="password"
+                    id="purge-verification-password-input"
+                    placeholder="Type your current user account password"
+                    value={purgePassword}
+                    onChange={(e) => setPurgePassword(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 font-sans shadow-sm transition-all"
+                    required
+                  />
+                </div>
+              )}
+
               <button
                 type="button"
                 id="execute-purge-btn"
-                disabled={!confirmClearChecked || isClearing}
+                disabled={!confirmClearChecked || !purgePassword.trim() || isClearing}
                 onClick={handlePurgeAllReservations}
                 className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white font-bold text-xs rounded-lg cursor-pointer transition-all shadow-md flex items-center justify-center gap-2"
               >
@@ -1781,7 +1827,9 @@ export default function OwnerDashboard({ currentUser, token, onRefreshAll }: Own
                           <th className="p-3">User Details</th>
                           <th className="p-3">Email Address</th>
                           <th className="p-3">Timestamp (Local)</th>
-                          <th className="p-3">Security Level</th>
+                          <th className="p-3 text-slate-800 dark:text-emerald-400 font-extrabold bg-slate-100/50 dark:bg-slate-800/60 uppercase border-l border-slate-200 dark:border-slate-700 pl-4">
+                            Auth Activity & Clearance
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200 bg-white dark:bg-transparent">
@@ -1793,17 +1841,31 @@ export default function OwnerDashboard({ currentUser, token, onRefreshAll }: Own
                             <td className="p-3 font-mono text-[11px] text-slate-600 dark:text-slate-300">
                               {new Date(log.loginAt).toLocaleString()}
                             </td>
-                            <td className="p-3">
+                            <td className="p-3 flex items-center flex-wrap gap-2">
+                              {/* Log In / Log Out action tracking badge */}
+                              {log.action === "logout" ? (
+                                <span className="px-2 py-0.5 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 rounded-md font-mono font-bold text-[10px] uppercase flex items-center gap-1 border border-rose-200/50 dark:border-rose-900/30 shadow-xs">
+                                  <LogOut className="w-3 h-3 text-rose-500 shrink-0" />
+                                  Log Out
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 rounded-md font-mono font-bold text-[10px] uppercase flex items-center gap-1 border border-emerald-200/50 dark:border-emerald-900/30 shadow-xs">
+                                  <LogIn className="w-3 h-3 text-emerald-500 shrink-0" />
+                                  Log In
+                                </span>
+                              )}
+
+                              {/* Security Clearance level */}
                               {log.userEmail.includes("owner") || log.userEmail === "rougebandit114@gmail.com" ? (
-                                <span className="px-2 py-0.5 bg-amber-100/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded font-sans font-bold text-[10px] uppercase">
+                                <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-950/20 text-amber-805 dark:text-amber-400 rounded font-sans font-bold text-[10px] uppercase border border-amber-200/40 dark:border-amber-900/30">
                                   Owner Clearance
                                 </span>
                               ) : log.userEmail.includes("admin") ? (
-                                <span className="px-2 py-0.5 bg-blue-105 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 rounded font-sans font-bold text-[10px] uppercase">
+                                <span className="px-2 py-0.5 bg-sky-50 dark:bg-sky-950/20 text-sky-805 dark:text-sky-450 rounded font-sans font-bold text-[10px] uppercase border border-sky-200/40 dark:border-sky-900/30">
                                   Admin Clearance
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-400 rounded font-sans font-bold text-[10px] uppercase">
+                                <span className="px-2 py-0.5 bg-slate-50 dark:bg-neutral-850 text-slate-600 dark:text-neutral-400 rounded font-sans font-bold text-[10px] uppercase border border-slate-200/40 dark:border-neutral-800">
                                   Faculty Clearance
                                 </span>
                               )}

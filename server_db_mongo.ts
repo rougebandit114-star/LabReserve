@@ -25,9 +25,20 @@ let mongoClient: MongoClient | null = null;
 let activeConfig: MongoSyncConfig | null = null;
 
 export async function startAndSyncMongoDB(config: MongoSyncConfig) {
+  // Gracefully close any existing active Client before spinning up a new one
+  if (mongoClient) {
+    try {
+      await mongoClient.close();
+      console.log("[MongoDB] Closed old database client connection.");
+    } catch (e) {
+      console.error("[MongoDB] Error closing old client:", e);
+    }
+    mongoClient = null;
+  }
+
   const uri = config.mongodbUri || process.env.MONGODB_URI;
-  if (!uri) {
-    console.log("[MongoDB] MONGODB_URI environment variable not configured. Operating in Local Filesystem mode.");
+  if (!uri || !uri.startsWith("mongodb")) {
+    console.log("[MongoDB] MONGODB_URI not configured or not using MongoDB protocol. Operating in Local Filesystem mode.");
     return;
   }
 
@@ -41,6 +52,11 @@ export async function startAndSyncMongoDB(config: MongoSyncConfig) {
     const db = mongoClient.db();
     console.log("[MongoDB] Connection successful! Syncing MongoDB collections with local JSON files...");
 
+    // Check system_metadata to see if database has been previously initialized, preventing unwanted re-seeding of wiped/empty databases
+    const metadataCol = db.collection("system_metadata");
+    const metaDoc = await metadataCol.findOne({ isInitialized: true });
+    const isDbInitialized = !!metaDoc;
+
     const collections = [
       { name: "users", file: config.files.users, defaultVal: config.defaults.users },
       { name: "bookings", file: config.files.bookings, defaultVal: config.defaults.bookings },
@@ -52,37 +68,55 @@ export async function startAndSyncMongoDB(config: MongoSyncConfig) {
 
     for (const col of collections) {
       const dbCollection = db.collection(col.name);
-      const docs = await dbCollection.find({}).toArray();
       
-      if (docs.length > 0) {
+      if (isDbInitialized) {
+        // Pull whatever is in MongoDB directly (even if empty, representing intentional clears)
+        const docs = await dbCollection.find({}).toArray();
         const cleaned = docs.map((doc: any) => {
           const { _id, ...rest } = doc;
           return rest;
         });
         fs.writeFileSync(col.file, JSON.stringify(cleaned, null, 2));
-        console.log(`[MongoDB] Pulled ${docs.length} records of '${col.name}' from MongoDB collection.`);
+        console.log(`[MongoDB] Pulled ${docs.length} records of '${col.name}' from active initialized database.`);
       } else {
-        let localData: any[] = [];
-        try {
-          if (fs.existsSync(col.file)) {
-            localData = JSON.parse(fs.readFileSync(col.file, "utf-8"));
-          } else {
-            localData = col.defaultVal;
-          }
-        } catch (e) {
-          localData = col.defaultVal;
-        }
-
-        const records = Array.isArray(localData) ? localData : [];
-        if (records.length > 0) {
-          const cleaned = records.map((r: any) => {
-            const { _id, ...rest } = r;
+        // If brand new datastore connection space, do traditional seeding
+        const docs = await dbCollection.find({}).toArray();
+        if (docs.length > 0) {
+          const cleaned = docs.map((doc: any) => {
+            const { _id, ...rest } = doc;
             return rest;
           });
-          await dbCollection.insertMany(cleaned);
-          console.log(`[MongoDB] Seeded remote MongoDB collection '${col.name}' with ${records.length} local records.`);
+          fs.writeFileSync(col.file, JSON.stringify(cleaned, null, 2));
+          console.log(`[MongoDB] Found and loaded ${docs.length} pre-present records of '${col.name}'.`);
+        } else {
+          let localData: any[] = [];
+          try {
+            if (fs.existsSync(col.file)) {
+              localData = JSON.parse(fs.readFileSync(col.file, "utf-8"));
+            } else {
+              localData = col.defaultVal;
+            }
+          } catch (e) {
+            localData = col.defaultVal;
+          }
+
+          const records = Array.isArray(localData) ? localData : [];
+          if (records.length > 0) {
+            const cleaned = records.map((r: any) => {
+              const { _id, ...rest } = r;
+              return rest;
+            });
+            await dbCollection.insertMany(cleaned);
+            console.log(`[MongoDB] Seeded remote MongoDB collection '${col.name}' with ${records.length} local records.`);
+          }
         }
       }
+    }
+
+    // Mark database as initialized if it wasn't already
+    if (!isDbInitialized) {
+      await metadataCol.insertOne({ isInitialized: true, seededAt: new Date().toISOString() });
+      console.log("[MongoDB] Marked remote database as initialized in system_metadata.");
     }
   } catch (err) {
     console.error("[MongoDB] Initialization sync error:", err);

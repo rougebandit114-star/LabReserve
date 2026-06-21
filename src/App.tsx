@@ -300,7 +300,19 @@ export default function App() {
     await fetchAllData(sessionToken);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (token) {
+      try {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+      } catch (err) {
+        console.error("Error logging logout on server:", err);
+      }
+    }
     localStorage.removeItem("lab_session_token");
     localStorage.removeItem("lab_user_profile");
     setUser(null);

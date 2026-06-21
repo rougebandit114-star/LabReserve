@@ -31,28 +31,82 @@ const EMAILS_FILE = path.join(DATA_DIR, "emails.json");
 const RESOURCES_FILE = path.join(DATA_DIR, "resources.json");
 const LOGIN_LOGS_FILE = path.join(DATA_DIR, "login_logs.json");
 
-// Helper to read JSON file safely
-const readJsonFile = <T>(filePath: string, defaultValue: T): T => {
+const DEFAULT_DB_CONFIG = {
+  uri: "mongodb://cluster0-replica.edu:27017/labreserve",
+  secretKey: "secure-system-vault-production-credentials",
+  status: "Connected",
+  dbType: "Embedded Virtual DB",
+  lastTested: new Date().toISOString()
+};
+
+// Helper to resolve the correct database partition file path dynamically
+const getDbFilePath = (filePath: string): string => {
+  const fileName = path.basename(filePath);
+  
+  // DB configurations must remaining global at the root of DATA_DIR
+  if (fileName === "db_connection.json" || fileName === "db_profiles.json") {
+    return path.join(DATA_DIR, fileName);
+  }
+
+  if (!filePath.includes(DATA_DIR)) {
+    return filePath;
+  }
+
   try {
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, JSON.stringify(defaultValue, null, 2));
+    const configPath = path.join(DATA_DIR, "db_connection.json");
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      const profilesPath = path.join(DATA_DIR, "db_profiles.json");
+      if (fs.existsSync(profilesPath)) {
+        const profiles = JSON.parse(fs.readFileSync(profilesPath, "utf-8"));
+        
+        // Match the connected database URI with dynamic datastore profiles
+        const activeProfile = profiles.find((p: any) => p.uri === config.uri);
+        if (activeProfile && activeProfile.id !== "prod-firebase") {
+          const partitionDir = path.join(DATA_DIR, "partitions", activeProfile.id);
+          return path.join(partitionDir, fileName);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error resolving dynamic db file path:", err);
+  }
+
+  return path.join(DATA_DIR, fileName);
+};
+
+// Helper to read JSON file safely with dynamic database path mapping
+const readJsonFile = <T>(filePath: string, defaultValue: T): T => {
+  const resolvedPath = getDbFilePath(filePath);
+  try {
+    if (!fs.existsSync(resolvedPath)) {
+      const dir = path.dirname(resolvedPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(resolvedPath, JSON.stringify(defaultValue, null, 2));
       return defaultValue;
     }
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = fs.readFileSync(resolvedPath, "utf-8");
     return JSON.parse(content) as T;
   } catch (err) {
-    console.error(`Error reading file ${filePath}:`, err);
+    console.error(`Error reading file ${resolvedPath}:`, err);
     return defaultValue;
   }
 };
 
-// Helper to write JSON file and sync to MongoDB in background
+// Helper to write JSON file and sync to MongoDB in background with dynamic path mapping
 const writeJsonFile = <T>(filePath: string, data: T): void => {
+  const resolvedPath = getDbFilePath(filePath);
   try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-    syncWriteToMongoDB(filePath, data);
+    const dir = path.dirname(resolvedPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(resolvedPath, JSON.stringify(data, null, 2));
+    syncWriteToMongoDB(resolvedPath, data);
   } catch (err) {
-    console.error(`Error writing file ${filePath}:`, err);
+    console.error(`Error writing file ${resolvedPath}:`, err);
   }
 };
 
@@ -216,12 +270,12 @@ const loginLogs = readJsonFile<any[]>(LOGIN_LOGS_FILE, defaultLoginLogs);
 // Initialize MongoDB Sync
 startAndSyncMongoDB({
   files: {
-    users: USERS_FILE,
-    bookings: BOOKINGS_FILE,
-    notifications: NOTIFICATIONS_FILE,
-    emails: EMAILS_FILE,
-    resources: RESOURCES_FILE,
-    loginLogs: LOGIN_LOGS_FILE
+    users: getDbFilePath(USERS_FILE),
+    bookings: getDbFilePath(BOOKINGS_FILE),
+    notifications: getDbFilePath(NOTIFICATIONS_FILE),
+    emails: getDbFilePath(EMAILS_FILE),
+    resources: getDbFilePath(RESOURCES_FILE),
+    loginLogs: getDbFilePath(LOGIN_LOGS_FILE)
   },
   defaults: {
     users: defaultUsersList,
@@ -335,7 +389,8 @@ app.post("/api/auth/login", (req, res) => {
       userId: foundUser.id,
       userName: foundUser.name,
       userEmail: foundUser.email,
-      loginAt: new Date().toISOString()
+      loginAt: new Date().toISOString(),
+      action: "login"
     });
     writeJsonFile(LOGIN_LOGS_FILE, list);
   } catch (err) {
@@ -343,6 +398,26 @@ app.post("/api/auth/login", (req, res) => {
   }
 
   res.json({ user: safeUser, token: safeUser.email });
+});
+
+// Post Logout tracking endpoint (tracks user log out event)
+app.post("/api/auth/logout", authenticateToken, (req: any, res) => {
+  try {
+    const list = readJsonFile<any[]>(LOGIN_LOGS_FILE, defaultLoginLogs);
+    list.push({
+      id: "LOG-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      userId: req.user.id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      loginAt: new Date().toISOString(),
+      action: "logout"
+    });
+    writeJsonFile(LOGIN_LOGS_FILE, list);
+    res.json({ success: true, message: "Logged out out securely mapped." });
+  } catch (err) {
+    console.error("Logout logging failed:", err);
+    res.status(500).json({ error: "Failed to process logout telemetry." });
+  }
 });
 
 // Get User Login History Logs (Admin/Owner only)
@@ -1692,6 +1767,29 @@ app.post("/api/owner/db-config", authenticateToken, (req: any, res) => {
 
   writeJsonFile(DB_CONN_FILE, config);
 
+  // Hot-swap in background the MongoDB integration for newly swiped database workspace
+  startAndSyncMongoDB({
+    mongodbUri: uri,
+    files: {
+      users: getDbFilePath(USERS_FILE),
+      bookings: getDbFilePath(BOOKINGS_FILE),
+      notifications: getDbFilePath(NOTIFICATIONS_FILE),
+      emails: getDbFilePath(EMAILS_FILE),
+      resources: getDbFilePath(RESOURCES_FILE),
+      loginLogs: getDbFilePath(LOGIN_LOGS_FILE)
+    },
+    defaults: {
+      users: defaultUsersList,
+      bookings: [],
+      notifications: [],
+      emails: [],
+      resources: DEFAULT_RESOURCES,
+      loginLogs: defaultLoginLogs
+    }
+  }).catch(err => {
+    console.error("[MongoDB] DB-Config Swap sync reconnection failed:", err);
+  });
+
   // Notify Owner of update
   const allNotifications = readJsonFile<Notification[]>(NOTIFICATIONS_FILE, []);
   allNotifications.push({
@@ -1794,21 +1892,20 @@ app.post("/api/owner/create-database", authenticateToken, (req: any, res) => {
   writeJsonFile(DB_PROFILES_FILE, profiles);
 
   // 3. Create database partition/database space to put all application data!
-  // We clone workspaces, bookings, and users to demonstrate high-fidelity persistence
+  // We initialize the database with clean default states to ensure proper dataset isolation.
   const dbPartitionDir = path.join(DATA_DIR, "partitions", dbId);
   try {
     fs.mkdirSync(dbPartitionDir, { recursive: true });
     
-    // Copy current state files
-    const workspaces = readJsonFile(RESOURCES_FILE, DEFAULT_RESOURCES);
-    const bookings = readJsonFile(BOOKINGS_FILE, []);
-    const users = readJsonFile(USERS_FILE, []);
+    // Seed new database workspace with default clean systems
+    fs.writeFileSync(path.join(dbPartitionDir, "workspaces.json"), JSON.stringify(DEFAULT_RESOURCES, null, 2));
+    fs.writeFileSync(path.join(dbPartitionDir, "bookings.json"), JSON.stringify([], null, 2));
+    fs.writeFileSync(path.join(dbPartitionDir, "users.json"), JSON.stringify(defaultUsersList, null, 2));
+    fs.writeFileSync(path.join(dbPartitionDir, "notifications.json"), JSON.stringify([], null, 2));
+    fs.writeFileSync(path.join(dbPartitionDir, "emails.json"), JSON.stringify([], null, 2));
+    fs.writeFileSync(path.join(dbPartitionDir, "login_logs.json"), JSON.stringify([], null, 2));
     
-    fs.writeFileSync(path.join(dbPartitionDir, "workspaces.json"), JSON.stringify(workspaces, null, 2));
-    fs.writeFileSync(path.join(dbPartitionDir, "bookings.json"), JSON.stringify(bookings, null, 2));
-    fs.writeFileSync(path.join(dbPartitionDir, "users.json"), JSON.stringify(users, null, 2));
-    
-    console.log(`[DATABASE PROVISIONING CONFIG] Switched-on database ${dbId} and populated application state.`);
+    console.log(`[DATABASE PROVISIONING CONFIG] Switched-on database ${dbId} and initialized isolated seed data.`);
   } catch (err) {
     console.error("Database schema generation simulation error:", err);
   }
@@ -1910,6 +2007,18 @@ app.post("/api/owner/clear-all-reservations", authenticateToken, (req: any, res)
     return res.status(403).json({ error: "Access Denied. Owner or Admin validation failed." });
   }
 
+  const { confirmPassword } = req.body;
+  if (!confirmPassword) {
+    return res.status(400).json({ error: "Verification password is required to authorize purge." });
+  }
+
+  // Find user in db to verify correct password
+  const allUsers = readJsonFile<any[]>(USERS_FILE, defaultUsersList);
+  const foundUser = allUsers.find(u => u.id === req.user.id);
+  if (!foundUser || foundUser.password !== confirmPassword) {
+    return res.status(401).json({ error: "Incorrect password. Verification failed and no data was erased." });
+  }
+
   // Clear bookings.json
   writeJsonFile(BOOKINGS_FILE, []);
 
@@ -1919,20 +2028,10 @@ app.post("/api/owner/clear-all-reservations", authenticateToken, (req: any, res)
   // Clear login_logs.json
   writeJsonFile(LOGIN_LOGS_FILE, []);
 
-  // Post notifications to confirm clearing
-  const allNotifications = readJsonFile<Notification[]>(NOTIFICATIONS_FILE, []);
-  allNotifications.push({
-    id: crypto.randomUUID(),
-    userId: req.user.id,
-    title: "⚡ Dynamic Core Sanitation Complete",
-    message: "A command to clear all reservation databases, sent email logs, and login security histories has run successfully. Core user directories remain active.",
-    type: "alert",
-    isRead: false,
-    createdAt: new Date().toISOString()
-  });
-  writeJsonFile(NOTIFICATIONS_FILE, allNotifications);
+  // Clear notifications database as well
+  writeJsonFile(NOTIFICATIONS_FILE, []);
 
-  res.json({ success: true, message: "All reservations, emails, and login history records have been successfully cleared." });
+  res.json({ success: true, message: "All reservations, emails, login history, and notification logs have been successfully cleared." });
 });
 
 
